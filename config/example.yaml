@@ -1,0 +1,15 @@
+server:
+  hostname: irc.awesome.cool
+  port: 443
+  use_tls: true
+  check_certificates: false
+  channels:
+    - "#general"
+    - "#off-topic"
+user:
+  username: Isidore
+  mode: 0
+  realname: Isidore Beautrelet
+client:
+  sent_history_length: 65536
+  channel_history_length: 65536
