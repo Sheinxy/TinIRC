@@ -6,6 +6,7 @@ module UserInterface.Types where
 import Brick.BChan
 import Data.ByteString (ByteString)
 import Data.Map (Map)
+import Data.Set (Set)
 import Data.Text (Text)
 import Lens.Micro.TH
 
@@ -48,7 +49,9 @@ data AppState = AppState
     -- | The currently selected message in the history (grows backward)
     _sentHistoryCurrent :: Int,
     -- | The currently selected channel
-    _currentChannel :: Int
+    _currentChannel :: Int,
+    -- | List of currently unread channels
+    _unreadChannels :: Set String
   }
 
 makeLenses ''AppState

@@ -1,9 +1,12 @@
 module UserInterface.Widgets where
 
+import Brick.AttrMap (attrName)
 import Brick.Forms
 import Brick.Types
 import Brick.Widgets.Core
 import Data.ByteString (ByteString)
+import Data.Set (Set)
+import qualified Data.Set as Set
 import Data.Text.Encoding (decodeUtf8)
 import Lens.Micro (Getting, (^.))
 import UserInterface.Types (AppState, input)
@@ -29,10 +32,20 @@ makeForm :: AppState -> AppForm
 makeForm = newForm [editTextField input PromptBox (Just 1)]
 
 -- | Construct the channelBox widget
-channelBox :: [String] -> Int -> Widget Name
-channelBox channels selected = withVScrollBars OnLeft . viewport ChannelBox Vertical $ vBox $ zipWith makeChannel [0 ..] channels
+channelBox :: [String] -> Int -> Set String -> Widget Name
+channelBox channels selected unread =
+  withVScrollBars OnLeft
+    . viewport ChannelBox Vertical
+    . vBox
+    $ zipWith makeChannel [0 ..] channels
   where
-    makeChannel idx = padLeft (Pad 1) . str . ((if idx == selected then "* " else "  ") ++)
+    makeChannel idx name =
+      (if Set.member name unread then withAttr (attrName "unread") else id)
+        . padRight Max
+        . padLeft (Pad 1)
+        . str
+        . ((if idx == selected then "* " else "  ") ++)
+        $ name
 
 -- | Modify the form's inner state
 modifyForm :: (AppState -> AppState) -> EventM Name AppForm ()

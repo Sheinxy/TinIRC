@@ -9,6 +9,7 @@ import Data.ByteString (ByteString)
 import Data.ByteString.UTF8 (fromString)
 import Data.List (nub)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import IrcParsing.Parsing
 import IrcParsing.Types
 import Lens.Micro (over)
@@ -73,6 +74,9 @@ addNewMessages config msgs = do
     vScrollBy (viewportScroll MessageBox) (length . filter (== curChannelName) $ changedChannels)
   when (curChannelName == "- Raw") $ do
     vScrollBy (viewportScroll MessageBox) (length msgs)
+  -- Mark channels with new messages as unread if they're not selected
+  let unreadChans = filter (/= curChannelName) $ "- Raw" : changedChannels
+  modifyForm (over unreadChannels $ flip (foldr Set.insert) unreadChans)
   where
     addRaw = Map.adjust (addContentToChannel msgs (++)) "- Raw"
     addParsed = flip $ addParsedMessage config

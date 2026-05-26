@@ -11,6 +11,7 @@ import Control.Monad.IO.Class (liftIO)
 import Data.ByteString (ByteString)
 import Data.ByteString.Search (split)
 import qualified Data.Map as Map
+import qualified Data.Set as Set
 import Data.Text (append, pack)
 import Data.Text.Encoding (encodeUtf8)
 import qualified Graphics.Vty as V
@@ -64,12 +65,18 @@ forwardHistory = do
     modifyForm (set input msg)
     modifyForm (set sentHistoryCurrent current')
 
+markChannelAsRead :: EventM Name AppForm ()
+markChannelAsRead = do
+  curChannelName <- (!!) <$> getFormField channels <*> getFormField currentChannel
+  modifyForm (over unreadChannels $ Set.delete curChannelName)
+
 changeSelectedChannel :: Location -> EventM Name AppForm ()
 changeSelectedChannel (Location (_, y)) = do
   maxIdx <- length <$> getFormField channels
   unless (y >= maxIdx) $ do
     modifyForm (set currentChannel y)
     vScrollToEnd (viewportScroll MessageBox)
+    markChannelAsRead
 
 incrementSelectedChannel :: EventM Name AppForm ()
 incrementSelectedChannel = do
@@ -77,6 +84,7 @@ incrementSelectedChannel = do
   current <- getFormField currentChannel
   modifyForm (set currentChannel ((current + 1) `mod` maxIdx))
   vScrollToEnd (viewportScroll MessageBox)
+  markChannelAsRead
 
 decrementSelectedChannel :: EventM Name AppForm ()
 decrementSelectedChannel = do
@@ -84,6 +92,7 @@ decrementSelectedChannel = do
   current <- getFormField currentChannel
   modifyForm (set currentChannel ((current - 1) `mod` maxIdx))
   vScrollToEnd (viewportScroll MessageBox)
+  markChannelAsRead
 
 joinChannel :: UiConfig -> EventM Name AppForm ()
 joinChannel config = do

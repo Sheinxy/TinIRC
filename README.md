@@ -58,10 +58,6 @@ client:
 |- TinIRC.cabal
 ```
 
-## TODO (non-exhaustive, I might do more than that, but these are the ones I plan on doing)
-
-- [ ] Having an unread indicator
-
 --- 
 
 ## Was this written by AI?
