@@ -18,7 +18,7 @@ server:
   hostname: irc.awesome.cool
   port: 443
   use_tls: true
-  check_certificates: false
+  check_certificates: true
   channels:
     - "#general"
     - '#off-topic'
@@ -60,7 +60,6 @@ client:
 
 ## TODO (non-exhaustive, I might do more than that, but these are the ones I plan on doing)
 
-- [ ] Handling certificates
 - [ ] Having an unread indicator
 
 --- 

@@ -2,7 +2,7 @@ server:
   hostname: irc.awesome.cool
   port: 443
   use_tls: true
-  check_certificates: false
+  check_certificates: true
   channels:
     - "#general"
     - "#off-topic"

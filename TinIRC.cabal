@@ -58,6 +58,8 @@ executable TinIRC
     brick,
     bytestring,
     containers,
+    crypton-x509-system,
+    data-default,
     microlens,
     microlens-th,
     network,

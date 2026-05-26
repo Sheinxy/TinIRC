@@ -10,6 +10,7 @@ import Control.Concurrent.Async
 import Control.Exception
 import Control.Monad
 import qualified Data.ByteString.Char8 as C8
+import Data.Default (def)
 import qualified Data.List.NonEmpty as NE
 import Data.Strict.Classes (toLazy)
 import Data.Text.Encoding (encodeUtf8)
@@ -17,6 +18,7 @@ import Network.Socket
 import Network.Socket.ByteString
 import Network.TLS
 import System.Environment
+import System.X509 (getSystemCertificateStore)
 import UserInterface.Main
 import UserInterface.Types (RecvChan, SendChan, UiConfig (..))
 
@@ -40,9 +42,9 @@ runTLSClient config recvChan sendChan = do
             then
               defaultClientHooks {onServerCertificate = \_ _ _ _ -> return []}
             else
-              -- TODO: Properly handle certificate verification
               defaultClientHooks
-    let params = (defaultParamsClient hostname (C8.pack port)) {clientHooks = hooks}
+    store <- getSystemCertificateStore
+    let params = (defaultParamsClient hostname (C8.pack port)) {clientHooks = hooks, clientShared = def {sharedCAStore = store}}
     writeBChan recvChan "Connecting to the TLS server..."
     bracket (contextNew backend params) bye $ \ctx -> do
       handshake ctx
