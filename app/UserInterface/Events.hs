@@ -109,6 +109,14 @@ joinChannel config = do
       vScrollToEnd (viewportScroll MessageBox)
       vScrollToEnd (viewportScroll ChannelBox)
 
+exitApp :: UiConfig -> EventM Name AppForm ()
+exitApp config = do
+  -- Reset Mouse mode
+  vty <- getVtyHandle
+  liftIO $ V.setMode (V.outputIface vty) V.Mouse False
+  liftIO (writeBChan (sendChannel config) "QUIT")
+  halt
+
 -- | Handle an event on the UI
 -- The events can be:
 -- * Scrolling up or down on a viewport -> Scroll the viewport in question
@@ -134,7 +142,7 @@ appEvent _ (VtyEvent (V.EvKey V.KDown [V.MShift])) = forwardHistory
 appEvent _ (VtyEvent (V.EvKey V.KUp [V.MShift])) = rewindHistory
 appEvent _ (VtyEvent (V.EvKey V.KDown [V.MCtrl])) = incrementSelectedChannel
 appEvent _ (VtyEvent (V.EvKey V.KUp [V.MCtrl])) = decrementSelectedChannel
-appEvent config (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = liftIO (writeBChan (sendChannel config) "QUIT") >> halt
+appEvent config (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = exitApp config
 appEvent config (VtyEvent (V.EvKey V.KEnter [])) = sendMessage config
 appEvent config (AppEvent event) = receiveMessage config event
 appEvent _ ev = handleFormEvent ev -- Basically making it so the keyboard keyboards
