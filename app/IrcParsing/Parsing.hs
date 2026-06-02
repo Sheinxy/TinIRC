@@ -10,6 +10,10 @@ import Text.Parsec.String (Parser)
 
 -- https://www.rfc-editor.org/rfc/rfc2812#section-2.3.1
 
+upto :: Int -> Parser a -> Parser [a]
+upto 0 _ = return []
+upto n p = (:) <$> try p <*> upto (n - 1) p <|> return []
+
 message :: Parser Message
 message = do
   messagePrefix <- prefix
@@ -31,7 +35,7 @@ params = try fourteenOrLess <|> fourteen
     singletonIfnotNull x = [x]
     fourteenOrLess =
       (++)
-        <$> option [] (choice [try $ count i (space *> middle) | i <- [1 .. 14]])
+        <$> upto 14 (space *> middle)
         <*> (singletonIfnotNull <$> option [] (space *> char ':' *> trailing))
     fourteen =
       (++)
@@ -77,7 +81,7 @@ hostaddr = ip4addr <|> ip6addr
 ip4addr :: Parser String
 ip4addr = (++) <$> ip4Part <*> (concat <$> count 3 ((:) <$> char '.' <*> ip4Part))
   where
-    ip4Part = choice [try $ count i digit | i <- [1 .. 3]]
+    ip4Part = (:) <$> digit <*> upto 2 digit
 
 ip6addr :: Parser String
 ip6addr =
@@ -101,7 +105,7 @@ special = oneOf "[]\\`_^{|}"
 
 parseMessage :: ByteString -> Message
 parseMessage msg = case parse message "" msgS of
-  Left err -> Types.Message (Types.UserName "TinIRC client" "" "") msgS ["- Raw", show err]
+  Left err -> Types.Message (Types.UserName "TinIRC client" "" "") "PARSING_ERROR" ["- Raw", msgS ++ " - " ++ show err]
   Right res -> res
   where
     msgS = toString msg

@@ -32,6 +32,7 @@ addContentToChannel content adder = adder content
 addParsedMessage :: UiConfig -> Message -> Map.Map String [ByteString] -> Map.Map String [ByteString]
 addParsedMessage config msg
   | isPrivateMessage msg = Map.alter (addToOrCreateChannel content) channel
+  | isNoSuchNick msg && not (null . tail $ params msg) = Map.alter (addToOrCreateChannel content) (params msg !! 1)
   | otherwise = id
   where
     channel
@@ -44,6 +45,9 @@ addParsedMessage config msg
 
 isPrivateMessage :: Message -> Bool
 isPrivateMessage = (`elem` ["NOTICE", "PRIVMSG"]) . command
+
+isNoSuchNick :: Message -> Bool
+isNoSuchNick = (== "401") . command
 
 getNewDmSender :: UiConfig -> [String] -> [Message] -> [String]
 getNewDmSender config chans =
