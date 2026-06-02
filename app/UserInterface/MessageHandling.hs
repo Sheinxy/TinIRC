@@ -26,6 +26,11 @@ getChannel msg
   | null (params msg) = ""
   | otherwise = head (params msg)
 
+getTargetChannel :: UiConfig -> Message -> String
+getTargetChannel config msg
+  | getChannel msg == displayName config = messageSender config msg
+  | otherwise = getChannel msg
+
 addContentToChannel :: a -> (a -> [ByteString] -> [ByteString]) -> [ByteString] -> [ByteString]
 addContentToChannel content adder = adder content
 
@@ -35,9 +40,7 @@ addParsedMessage config msg
   | isNoSuchNick msg && not (null . tail $ params msg) = Map.alter (addToOrCreateChannel content) (params msg !! 1)
   | otherwise = id
   where
-    channel
-      | getChannel msg == displayName config = messageSender config msg
-      | otherwise = getChannel msg
+    channel = getTargetChannel config msg
     content
       | null (params msg) = ""
       | otherwise = fromString $ (messageSender config msg ++ ": ") ++ last (params msg)
@@ -72,7 +75,7 @@ addNewMessages config msgs = do
   modifyForm (over messages $ flip (foldl addParsed) parsed)
 
   -- Scroll only for messages in the current channel
-  let changedChannels = map getChannel $ filter isPrivateMessage parsed
+  let changedChannels = map (getTargetChannel config) $ filter isPrivateMessage parsed
   curChannelName <- (!!) <$> getFormField channels <*> getFormField currentChannel
   when (curChannelName `elem` changedChannels) $ do
     vScrollBy (viewportScroll MessageBox) (length . filter (== curChannelName) $ changedChannels)
