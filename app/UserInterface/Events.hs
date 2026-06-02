@@ -18,6 +18,7 @@ import qualified Graphics.Vty as V
 import Lens.Micro (over, set)
 import UserInterface.JoinDialog
 import UserInterface.MessageHandling
+import UserInterface.PartDialog
 import UserInterface.Types
 import UserInterface.Widgets
   ( AppForm,
@@ -118,6 +119,31 @@ joinChannel config = do
       vScrollToEnd (viewportScroll MessageBox)
       vScrollToEnd (viewportScroll ChannelBox)
 
+partChannel :: UiConfig -> Int -> EventM Name AppForm ()
+partChannel config y = do
+  maxIdx <- length <$> getFormField channels
+  chans <- getFormField channels
+  unless (y >= maxIdx || y <= 0) $ do
+    let toDeleteChannel = chans !! y
+    partRes <- suspendAndResume' (runPartDialog toDeleteChannel)
+    -- Reset Mouse mode
+    vty <- getVtyHandle
+    liftIO $ V.setMode (V.outputIface vty) V.Mouse True
+    -- Do nothing if result was No
+    unless (partRes == "No") $ do
+      -- Change current channel and scroll if selected channel was deleted
+      selectedIdx <- getFormField currentChannel
+      when (selectedIdx == y) $ do
+        modifyForm (set currentChannel (y - 1))
+        vScrollToEnd (viewportScroll MessageBox)
+      modifyForm (over channels (filter (/= toDeleteChannel)))
+      modifyForm (over messages $ Map.delete toDeleteChannel)
+      -- Part channel if it is not a DM
+      when (head toDeleteChannel `elem` ("& #+!" :: String)) $ do
+        let msg = pack $ "PART " ++ toDeleteChannel ++ "\r\n"
+        liftIO $ writeBChan (sendChannel config) msg
+        addNewMessages config [encodeUtf8 msg]
+
 exitApp :: UiConfig -> EventM Name AppForm ()
 exitApp config = do
   -- Reset Mouse mode
@@ -129,20 +155,24 @@ exitApp config = do
 -- | Handle an event on the UI
 -- The events can be:
 -- * Scrolling up or down on a viewport -> Scroll the viewport in question
+-- * Right Clicking on a channel -> Quit that channel
 -- * Clicking on a channel -> Select that channel
--- * Clicking on the "Join/DM" -> Open the join channel prompt
+-- * Clicking on the "Join/DM" or pressing the Insert key -> Open the join channel prompt
 -- * Up or Down arrows are pressed -> Scroll the chat history
 -- * Up or Down arrows are pressed with the control key -> Change selected channel
 -- * Up arrow is pressed WITH the shift key-> Set the input prompt to the last sent message
 -- * Down arrow is pressed WITH the shift key -> Clear the input promp
 -- * Enter is pressed -> Send a message (pass it to the client module)
+-- * Escape is pressed -> Leave current channel
 -- * A message is present in the received channel -> Display it in the chat history
 -- * Another key was pressed -> Write the input to the prompt
 appEvent :: UiConfig -> BrickEvent Name ByteString -> EventM Name AppForm ()
 appEvent _ (MouseDown box V.BScrollUp _ _) = vScrollBy (viewportScroll box) (-1)
 appEvent _ (MouseDown box V.BScrollDown _ _) = vScrollBy (viewportScroll box) 1
+appEvent config (MouseDown ChannelBox V.BRight _ (Location (_, y))) = partChannel config y
 appEvent _ (MouseDown ChannelBox _ _ l) = changeSelectedChannel l
 appEvent config (MouseDown JoinButton _ _ _) = joinChannel config
+appEvent config (VtyEvent (V.EvKey V.KIns [])) = joinChannel config
 appEvent _ (VtyEvent (V.EvKey V.KDown [])) = vScrollBy (viewportScroll MessageBox) 1
 appEvent _ (VtyEvent (V.EvKey V.KUp [])) = vScrollBy (viewportScroll MessageBox) (-1)
 appEvent _ (VtyEvent (V.EvKey V.KDown [V.MCtrl, V.MShift])) = vScrollBy (viewportScroll ChannelBox) 1
@@ -153,5 +183,6 @@ appEvent _ (VtyEvent (V.EvKey V.KDown [V.MCtrl])) = incrementSelectedChannel
 appEvent _ (VtyEvent (V.EvKey V.KUp [V.MCtrl])) = decrementSelectedChannel
 appEvent config (VtyEvent (V.EvKey (V.KChar 'c') [V.MCtrl])) = exitApp config
 appEvent config (VtyEvent (V.EvKey V.KEnter [])) = sendMessage config
+appEvent config (VtyEvent (V.EvKey V.KEsc [])) = getFormField currentChannel >>= partChannel config
 appEvent config (AppEvent event) = receiveMessage config event
 appEvent _ ev = handleFormEvent ev -- Basically making it so the keyboard keyboards

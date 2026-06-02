@@ -12,6 +12,7 @@ import Brick.Widgets.Center
 import Brick.Widgets.Core
 import Data.Text (Text, unpack)
 import qualified Graphics.Vty as V
+import Lens.Micro (set)
 import Lens.Micro.TH
 
 data Name = InputBox deriving (Ord, Show, Eq)
@@ -30,6 +31,7 @@ draw f = [box prompt]
 
 appEvent :: BrickEvent Name () -> EventM Name JoinDialog ()
 appEvent (VtyEvent (V.EvKey V.KEnter [])) = halt
+appEvent (VtyEvent (V.EvKey V.KEsc [])) = gets formState >>= modify . updateFormState . set input "" >> halt
 appEvent ev = handleFormEvent ev
 
 app :: App JoinDialog () Name
