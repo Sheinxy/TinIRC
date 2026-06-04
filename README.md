@@ -45,6 +45,7 @@ client:
     |- JoinDialog.hs -> DialogBox for joining a new channel or entering a DM
     |- Main.hs -> The main entrypoint for the UserInterface. This is where the App is defined as well as the draw function
     |- MessageHandling.hs -> Everything related to handling of newly received messages (calling the parser and putting the messages at the right place)
+    |- PartDialog.hs -> DialogBox for leaving a channel or a DM
     |- Types.hs -> Types for the App (Form and State, as well as channels) and utility functions on these types
     |- Widgets.hs -> Widget creation for the App
   |- Client.hs -> Client handling the networking
